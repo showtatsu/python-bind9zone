@@ -1,0 +1,20 @@
+version: '3'
+services:
+  app:
+    build: 
+      context: ..
+      dockerfile: ./Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: "python -m pytest --cov-report=html --cov=bind9zone"
+    tty: true
+    environment:
+      DB_CONNECT: 'postgres://postgres:postgres@db/database'
+      ZONES: 'public/pf.rickey.dev,private/pf.rickey.dev'
+      TEST_POSTGRES: 1
+  db:
+    image: postgres:11.10-alpine
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "database"

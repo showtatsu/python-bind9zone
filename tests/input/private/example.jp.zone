@@ -1,0 +1,17 @@
+$ORIGIN example.jp.
+$TTL 600
+@  IN SOA ns.example.com. admin.example.com. ( 2101202346 600 600 604800 60 )
+@ 60 IN A 192.168.1.11
+@ 60 IN NS dns
+dns 60 IN A 192.168.1.11
+opt 80 IN TXT "opt-001"
+       IN TXT "opt-002"
+   100 IN TXT "opt-003"
+opt    IN TXT "opt-004"
+opt       TXT "opt-005"
+opt       A   192.168.1.1
+          A   192.168.1.2
+       AAAA   2001:0DB8::1
+in        A   192.168.1.3
+
+empty 60 IN A 192.0.2.100

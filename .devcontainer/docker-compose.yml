@@ -1,0 +1,21 @@
+version: '3'
+services:
+  app:
+    build: 
+      context: ..
+      dockerfile: .devcontainer/Dockerfile
+    volumes:
+      - ..:/workspace:cached
+    command: /bin/ash
+    tty: true
+    environment:
+      DB_CONNECT: 'postgres://postgres:postgres@db/database'
+      DB_CONNECT_PG: 'postgres://postgres:postgres@db/database'
+      DB_CONNECT_SL: 'sqlite:///tests/db.sqlite3'
+  db:
+    image: postgres:11.10-alpine
+    environment:
+      POSTGRES_USER: "postgres"
+      POSTGRES_PASSWORD: "postgres"
+      POSTGRES_DB: "database"
+    command: '-c statement_timeout=5000 -c lock_timeout=5000'

@@ -1,0 +1,12 @@
+kind: pipeline
+type: docker
+steps:
+- name: test
+  image: python:3.9.1-alpine3.12
+  environment:
+    DB_CONNECT: sqlite:///tests/db.sqlite3
+  commands:
+    - apk add --no-cache gcc python3-dev musl-dev postgresql-dev
+    - pip install psycopg2-binary
+    - pip install -e .[test]
+    - python -m pytest -cov-report=html --cov=bind9zone

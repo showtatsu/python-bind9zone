@@ -1,0 +1,10 @@
+[tool.pytest]
+minversion = 6.0
+
+[tool.coverage.run]
+source = [
+  "./bind9zone"
+]
+omit = [
+  "./bind9zone/__main__.py"
+]
