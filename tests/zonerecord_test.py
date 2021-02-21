@@ -1,11 +1,6 @@
-import sys, re, itertools, time
 import pytest
-from contextlib import contextmanager
-from datetime import datetime, timedelta, timezone
 from io import StringIO
-
 from bind9zone import ZoneRecord, ZoneFile
-from bind9zone.cli import Bind9ZoneCLI
 
 
 @pytest.fixture
@@ -13,7 +8,8 @@ def records():
     zonefile = 'tests/input/public/example.com.zone'
     with open(zonefile, mode='r') as reader:
         stream = StringIO(reader.read())
-    records = [ZoneRecord({**r, "namespace": "public"}) for r in ZoneFile.from_stream(stream)]
+    records = [ZoneRecord({**r, "namespace": "public"})
+               for r in ZoneFile.from_stream(stream)]
     return records
 
 
@@ -39,7 +35,6 @@ def test_attributes_modifier(records):
     assert record.ttl == 60 * 60 * 24 * 3
     record.ttl = '3W'
     assert record.ttl == 60 * 60 * 24 * 7 * 3
-
 
 
 def test_attributes_modifier_exceptions(records):
@@ -69,19 +64,6 @@ def test_attributes_modifier_exceptions(records):
         record.compare('invalid compare')
     with pytest.raises(ValueError):
         record.compare('invalid compare')
-
-
-def test_attributes_modifier_omit():
-    record = ZoneRecord({
-        'name': 'mock.example.com.',
-        'type': 'A',
-        'data': '192.0.2.201',
-        'ttl': 60,
-        'origin': 'example.com.',
-        'namespace': 'public'
-    })
-    # nameがFQDNで適切なorigin配下に存在している場合、nameは正規化されてsuffix省略に切り替えられます。
-    assert record.name == 'mock'
 
 
 def test_attributes_modifier_omit():

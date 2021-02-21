@@ -1,11 +1,10 @@
 import re
-import validators
-import itertools
-from datetime import datetime, timedelta, timezone
 from .zonerecord import ZoneRecord
+from . import utils as zutils
+
 
 class ZoneFile(object):
-    
+
     @classmethod
     def to_zonefile(cls, records, sort=True):
         """
@@ -21,7 +20,6 @@ class ZoneFile(object):
         ])
         return zonedata
 
-
     @classmethod
     def from_stream(cls, reader, origin='.', ttl=None, missed_lines=None):
         """
@@ -34,7 +32,8 @@ class ZoneFile(object):
         line = reader.readline()
         lastRecord = None
         typeTopRecord = None
-        skip_directives=True # Not implemented yet, Force skip directive option.
+        # Not implemented yet, Force skip directive option.
+        skip_directives = True
         while line:
             line = line.rstrip()
             meta = cls.parser_metadata_comment(line)
@@ -45,7 +44,7 @@ class ZoneFile(object):
             # $GENERATE
             generate = cls.parser_generate_directive(line, origin)
             if generate and not skip_directives:
-                yield { **meta, **generate } if meta else generate
+                yield {**meta, **generate} if meta else generate
                 line = reader.readline()
                 continue
 
@@ -60,9 +59,10 @@ class ZoneFile(object):
                 elif directive["name"] == '$TTL':
                     ttl = int(directive["data"])
                 else:
-                    raise ValueError('Unknown directive section found in zone file. line=[{}]'.format(line))
+                    raise ValueError(
+                        'Unknown directive section found in zone file. line=[{}]'.format(line))
                 if not skip_directives:
-                    yield { **meta, **directive } if meta else directive
+                    yield {**meta, **directive} if meta else directive
                 line = reader.readline()
                 continue
 
@@ -71,21 +71,22 @@ class ZoneFile(object):
             if record:
                 if record["type"] != "SOA":
                     # SOAレコード以外は1行にまとまってないと駄目。
-
                     # nameフィールドが省略されたら、前段のレコードから取得(必須)
                     if record["name"] is None:
                         if lastRecord is not None:
                             record["name"] = lastRecord["name"]
                         else:
-                            raise ValueError('Resource name omitted and last entry not found. line=[{}]'.format(line))
-                    
+                            raise ValueError(
+                                'Resource name omitted and last entry not found. line=[{}]'.format(line))
+
                     # classフィールドが省略されたら、前段のレコードから取得(必須)
                     if record["class"] is None:
                         if lastRecord is not None:
                             record["class"] = lastRecord["class"]
                         else:
-                            raise ValueError('Resource class omitted and last entry not found. line=[{}], dict=[{}]'.format(line, str(record)))
-                    
+                            raise ValueError(
+                                'Resource class omitted and last entry not found. line=[{}], dict=[{}]'.format(line, str(record)))
+
                     # ttlフィールドは、先行する "同一名/同一typeのレコード"の値が優先されます。
                     # ただし、コードレベルではTTL値自体は登録可能ですので注意してください。
                     # 同一名/同一タイプで異なるTTLを指定した時、最初に現れたレコードの値が選択される動作はBIND9サーバの仕様です。
@@ -97,11 +98,11 @@ class ZoneFile(object):
                             record["ttl"] = ttl
 
                     # SOA以外のレコードはここから返ります。
-                    yield { **meta, **record } if meta else record
+                    yield {**meta, **record} if meta else record
                     lastRecord = record
-                    if not (typeTopRecord is not None \
-                        and typeTopRecord['name'] == record['name'] \
-                        and typeTopRecord['type'] == record['type']):
+                    if not (typeTopRecord is not None
+                            and typeTopRecord['name'] == record['name']
+                            and typeTopRecord['type'] == record['type']):
                         typeTopRecord = record
                 else:
                     # SOAレコードは複数行になってもOK。その代わり"("までは行にまとまってないと駄目。
@@ -117,20 +118,22 @@ class ZoneFile(object):
                             break
                     if record:
                         # SOAレコードはここから返ります。
-                        yield { **meta, **record } if meta else record
+                        soa_params = zutils.soa_parameters_from_data(record['data'])
+                        record['data'] = zutils.soa_parameters_to_data(**soa_params)
+                        yield {**meta, **record} if meta else record
                         lastRecord = record
-                        if not (typeTopRecord is not None \
-                            and typeTopRecord['name'] == record['name'] \
-                            and typeTopRecord['type'] == record['type']):
+                        if not (typeTopRecord is not None
+                                and typeTopRecord['name'] == record['name']
+                                and typeTopRecord['type'] == record['type']):
                             typeTopRecord = record
                     else:
                         # SOAを読み込むために複数行の処理を開始したが、
                         # 適切なSOAが識別できなかった場合は例外を発生させます。
-                        raise Exception("Valid SOA is not found or maybe longer than 1024 bytes. Buffer='{}'".format(line))
+                        raise Exception(
+                            "Valid SOA is not found or maybe longer than 1024 bytes. Buffer='{}'".format(line))
             if missed_lines is not None and len(missed_lines) > 0 and len(line) > 0:
                 raise Exception("Invalid parser: {}".format(line))
             line = reader.readline()
-
 
     @staticmethod
     def sort_records(records, types=['SOA'], names=['@']):
@@ -142,12 +145,12 @@ class ZoneFile(object):
         """
         def keyfunc(r):
             if not isinstance(r, ZoneRecord):
-                raise TypeError('This function only accept for a list of ZoneRecord objects.')
+                raise TypeError(
+                    'This function only accept for a list of ZoneRecord objects.')
             typeorder = types.index(r.type) if r.type in types else 'zz'
             nameorder = names.index(r.name) if r.name in names else 'z'
             return '{}:{}:{}:{}'.format(typeorder, nameorder, r.name, r.type)
         return sorted(records, key=keyfunc)
-
 
     @staticmethod
     def parser_metadata_comment(line):
@@ -161,7 +164,6 @@ class ZoneFile(object):
             return {
                 "id": int(match.group(1))
             }
-
 
     @staticmethod
     def parser_remove_comment(line):
@@ -196,7 +198,6 @@ class ZoneFile(object):
                 "data": match.group("data"),
             }
             return record
-
 
     @staticmethod
     def parser_generate_directive(line, currentOrigin):
@@ -236,12 +237,11 @@ class ZoneFile(object):
             }
             return record
 
-
     @staticmethod
     def parser_resource_record(line, currentOrigin):
         """
         def parser_resource_record (line:str, currentOrigin:str): => dict
-        
+
         Zoneファイルのリソースレコード1行をパースします。
         currentOriginには現在処理中のゾーンファイル上で、有効な$ORIGIN値を指定します。
         戻りはdictで下記項目です。
@@ -283,7 +283,6 @@ class ZoneFile(object):
             }
             return record
 
-
     @staticmethod
     def parser_soa_record(line, currentOrigin):
         """
@@ -304,7 +303,7 @@ class ZoneFile(object):
         また、SOAレコードが途中でも "(" までの文字が入っていればマッチします。
         リソースレコード以外が入力された場合はNoneが返ります。
         """
-        pattern = r'^(?P<name>[0-9A-Za-z*._-]+|@)?\s+(?:(?P<ttl>[1-9][0-9]*)\s+)?(?:(?P<class>IN)\s+)?(?:(?P<type>SOA)\s+)(?P<data>(?:(?P<dns>[0-9A-Za-z.-]+)\s+)(?:(?P<email>[0-9A-Za-z.-]+)\s+)\(\s*(?P<serial>[0-9]+)\s+(?P<refresh>[0-9]+)\s+(?P<retry>[0-9]+)\s+(?P<expire>[0-9]+)\s+(?P<minimum>[0-9]+)\s*\))$'
+        pattern = r'^(?P<name>[0-9A-Za-z*._-]+|@)?\s+(?:(?P<ttl>[1-9][0-9]*)\s+)?(?:(?P<class>IN)\s+)?(?:(?P<type>SOA)\s+)(?P<data>(?:(?P<dns>[0-9A-Za-z.-]+)\s+)(?:(?P<email>[0-9A-Za-z.\\-]+)\s+)\(\s*(?P<serial>[0-9]+)\s+(?P<refresh>[0-9]+)\s+(?P<retry>[0-9]+)\s+(?P<expire>[0-9]+)\s+(?P<minimum>[0-9]+)\s*\))$'
         match = re.match(pattern, line)
         if match:
             record = {

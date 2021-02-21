@@ -1,9 +1,11 @@
-import sys, re, pytest, os
+import sys
+import re
+import pytest
+import os
 from itertools import zip_longest
 from contextlib import contextmanager
 from io import StringIO
 
-from bind9zone import ZoneRecord
 from bind9zone.cli import Bind9ZoneCLI
 
 ZONEDIR_SRC = 'tests/input'
@@ -29,27 +31,27 @@ def captured_output():
         sys.stdout, sys.stderr = old_out, old_err
 
 
-@pytest.fixture(params=get_connection_fixture_params())
-def connection(request):
-    connection = request.param
-    con = ['--connection', connection]
-    Bind9ZoneCLI(['init', *con, '--drop']).run()
-    Bind9ZoneCLI(['bulkpush', *con,
-                  '--dir', ZONEDIR_SRC,
-                  '--zones', 'public/example.com,private/example.com'
-                ]).run()
-    if not os.path.isdir(os.path.join(ZONEDIR, 'public')):
-        os.mkdir(os.path.join(ZONEDIR, 'public'))
-    if not os.path.isdir(os.path.join(ZONEDIR, 'private')):
-        os.mkdir(os.path.join(ZONEDIR, 'private'))
-    output_files = [
-        'public/example.com.zone',
-        'private/example.com.zone']
-    for f in output_files:
-        filepath = os.path.join(ZONEDIR, f)
-        if os.path.isfile(filepath):
-            os.remove(filepath)
-    return connection
+#@pytest.fixture(params=get_connection_fixture_params())
+#def connection(request):
+#    connection = request.param
+#    con = ['--connection', connection]
+#    Bind9ZoneCLI(['init', *con, '--drop']).run()
+#    Bind9ZoneCLI(['bulkpush', *con,
+#                  '--dir', ZONEDIR_SRC,
+#                  '--zones', 'public/example.com,private/example.com'
+#                  ]).run()
+#    if not os.path.isdir(os.path.join(ZONEDIR, 'public')):
+#        os.mkdir(os.path.join(ZONEDIR, 'public'))
+#    if not os.path.isdir(os.path.join(ZONEDIR, 'private')):
+#        os.mkdir(os.path.join(ZONEDIR, 'private'))
+#    output_files = [
+#        'public/example.com.zone',
+#        'private/example.com.zone']
+#    for f in output_files:
+#        filepath = os.path.join(ZONEDIR, f)
+#        if os.path.isfile(filepath):
+#            os.remove(filepath)
+#    return connection
 
 
 def normalize_zonefile(stream):
@@ -72,7 +74,7 @@ def test_bulkpull(connection):
     dirs = ['--dir', ZONEDIR]
 
     with captured_output() as (out, err):
-        code = Bind9ZoneCLI(['bulkpull', *con, *zone, *dirs]).run()
+        code = Bind9ZoneCLI(['bulkpull', *con, *zone, *dirs, '--mkdir']).run()
     assert code == 0
 
     assert zonefile_is_same(
