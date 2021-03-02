@@ -6,12 +6,14 @@ RUN apk add --no-cache \
     musl-dev \
     postgresql-dev \
     && pip install psycopg2-binary
-RUN apk add git vim bash && adduser -u 101 -D bind
+RUN apk add git vim bash && \
+    adduser -u 101 -D bind && \
+    mkdir -p /usr/local/src/bind9zone
+
+#RUN pip install -r /usr/local/src/bind9zone/requirements.txt -r /usr/local/src/bind9zone/requirements-test.txt
+COPY ./setup.py requirements.txt requirements-test.txt /usr/local/src/bind9zone/
+COPY --chown=bind ./bind9zone /usr/local/src/bind9zone/bind9zone
+COPY --chown=bind ./tests /usr/local/src/bind9zone/tests
+RUN pip install -e '/usr/local/src/bind9zone/[test]'
+
 USER bind
-WORKDIR /home/bind
-COPY ./requirements.txt ./requirements-test.txt ./
-RUN pip install -r requirements.txt -r ./requirements-test.txt
-COPY --chown=bind ./bind9zone ./bind9zone
-COPY --chown=bind ./tests ./tests
-COPY --chown=bind setup.py ./
-RUN pip install -e '.[test]'
